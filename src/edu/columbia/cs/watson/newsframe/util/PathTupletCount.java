@@ -1,6 +1,7 @@
 package edu.columbia.cs.watson.newsframe.util;
 
 import edu.columbia.cs.watson.newsframe.schema.DBPediaCategory;
+import edu.columbia.cs.watson.newsframe.schema.DBPediaEntryInstance;
 
 /**
  * Created with IntelliJ IDEA.
@@ -11,40 +12,34 @@ import edu.columbia.cs.watson.newsframe.schema.DBPediaCategory;
  */
 public class PathTupletCount {
 
-    private DBPediaCategory cat1;
-    private DBPediaCategory cat2;
+    private DBPediaEntryInstance cat1;
+    private DBPediaEntryInstance cat2;
     private String path;
     private long count;
-    private double wCount;
-    private boolean isRaw = false;
+    private int nGram;
 
 
-    public PathTupletCount(DBPediaCategory cat1, DBPediaCategory cat2, String path, long count, double wCount, boolean isRaw) {
+    public PathTupletCount(DBPediaEntryInstance cat1, DBPediaEntryInstance cat2, String path, long count, int nGram) {
         this.cat1=cat1;
         this.cat2=cat2;
         this.path=path;
         this.count=count;
-        this.wCount=wCount;
-        this.isRaw = isRaw;
+        this.nGram=nGram;
 
     }
 
-    public DBPediaCategory getCategory1() {return cat1;}
-    public DBPediaCategory getCategory2() {return cat2;}
+    public DBPediaEntryInstance getEntity1() {return cat1;}
+    public DBPediaEntryInstance getEntity2() {return cat2;}
     public String getPath() {return path;}
     public long getCount() {return count;}
-    public double getWeightedCount() {return wCount;}
-    public boolean isRaw() {return isRaw;}
-
+    public int getNGram() {return nGram;}
 
     public void incrementCount(long inc) {count += inc;}
-    public void incrementWeightedCount(double inc) {wCount += inc;}
-
 
     @Override
     public int hashCode() {
 
-        return (cat1.getCategory()+cat2.getCategory()+getPath()).hashCode();
+        return (cat1.getName()+":"+cat2.getName()+":"+getPath()).hashCode();
 
     }
 

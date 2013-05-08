@@ -16,14 +16,17 @@ public class PairwiseEntityPath {
 
     private DBPediaEntryInstance ent1;
     private DBPediaEntryInstance ent2;
-    private List<String> depPath;
-    private List<CoreLabel> rawPath;
+    //private List<String> depPath;
+    //private List<CoreLabel> rawPath;
+    private String rawPath;
+    private int nGram;
 
-    public PairwiseEntityPath(DBPediaEntryInstance ent1, DBPediaEntryInstance ent2, List<String> depPath, List<CoreLabel> rawPath) {
+    public PairwiseEntityPath(DBPediaEntryInstance ent1, DBPediaEntryInstance ent2, String rawPath, int nGram) {
         this.ent1=ent1;
         this.ent2=ent2;
         this.rawPath=rawPath;
-        this.depPath=depPath;
+        this.nGram=nGram;
+        //this.depPath=depPath;
     }
 
 
@@ -43,9 +46,9 @@ public class PairwiseEntityPath {
         return ent2.getName();
     }
 
-    public List<String> getDependencyPath() {return depPath;}
-    public List<CoreLabel> getRawPath() {return rawPath;}
-
+    //public List<String> getDependencyPath() {return depPath;}
+    public String getRawPath() {return rawPath;}
+    public int getNGram() {return nGram;}
 
 
 }

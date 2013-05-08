@@ -94,13 +94,18 @@ public class TaggedXmlReader {
 
             NodeList entityElements = sentence.getChildNodes();
 
-            String[] fragments = new String[entityElements.getLength()-1];
+
+            String[] fragments = null;
+            if (entityElements.getLength() - 1 > 0)
+                fragments = new String[entityElements.getLength()-1];
+            else
+                fragments = new String[1];
 
             for(int i=1;i<entityElements.getLength();i++) {
                 if (entityElements.item(i).getNodeName().equals("#text")) {
                     String text = ((Text) entityElements.item(i)).getTextContent();
-                        offset += text.length();
-                        fragments[i-1] = text;
+                    offset += text.length();
+                    fragments[i-1] = text;
 
 
                 } else {
@@ -117,15 +122,18 @@ public class TaggedXmlReader {
                     if (prob < PROBABILITY_CUTOFF) {
                         fragments[i-1] = text;
                     } else {
-                        fragments[i-1] = "<A>:"+entityName + "<A>:"+text;
 
 
                         DBPediaEntryInstance dbPediaEntry;
 
-                        if (entryMap.containsKey(entityName)) {
+                        if (entryMap.containsKey(entityName) && entryMap.get(entityName).getCategories().size()>0) {
                             dbPediaEntry = entryMap.get(entityName);
+                            annotationSet.add(new DBPediaAnnotation(dbPediaEntry, start, end));
+                            fragments[i-1] = "<A>:"+entityName + "<A>:"+text;
 
 
+                        } else if (entryMap.containsKey(entityName)){
+                            fragments[i-1] = text;
                         } else {
 
                             List<DBPediaCategory> categories = null;
@@ -133,17 +141,43 @@ public class TaggedXmlReader {
                             try {
                                 DBPediaAnnotator dbPediaAnnotator = new DBPediaAnnotator();
                                 categories = dbPediaAnnotator.annotate(entityName);
+
+                                dbPediaEntry = new DBPediaEntryInstance(entityName,categories);
+                                entryMap.put(dbPediaEntry.getName(), dbPediaEntry);
+
+
+                                if (categories.size()>0) {
+
+
+                                    fragments[i-1] = "<A>:"+entityName + "<A>:"+text;
+
+
+
+
+                                    annotationSet.add(new DBPediaAnnotation(dbPediaEntry, start, end));
+
+
+                                } else {
+                                    fragments[i-1] = text;
+                                    System.out.println("Not a person or place!");
+
+                                }
+
+
+
+
+
                             } catch (Exception e) {
-                                categories = new ArrayList<DBPediaCategory>();
+                                //categories = new ArrayList<DBPediaCategory>();
+                                System.out.println("Not a person or place!");
+
                             }
 
                             //String[] categories = entity.getAttributes().getNamedItem("categories").getNodeValue().split(":");
-                            dbPediaEntry = new DBPediaEntryInstance(entityName,categories);
-                            entryMap.put(dbPediaEntry.getName(), dbPediaEntry);
+
                         }
 
 
-                        annotationSet.add(new DBPediaAnnotation(dbPediaEntry, start, end));
 
                     }
 

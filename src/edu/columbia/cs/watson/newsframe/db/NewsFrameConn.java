@@ -5,12 +5,12 @@ package edu.columbia.cs.watson.newsframe.db;
 import java.sql.*;
 
 public class NewsFrameConn {
-	
+
     public Connection conn;
     public Statement stmt;
     private String JDBC_DRIVER;
     private String username;
-	private String password;
+    private String password;
     private String dbname;
     private PreparedStatement preparedStatement;
 	
@@ -27,27 +27,27 @@ public class NewsFrameConn {
 	 */
 
     public NewsFrameConn () {
-	    JDBC_DRIVER = "com.mysql.jdbc.Driver";
-	    username = "newsframe";
-		password = "newsframe";
-	    dbname = "jdbc:mysql://localhost/newsframe";
-		conn = null;
-		stmt = null;
+        JDBC_DRIVER = "com.mysql.jdbc.Driver";
+        username = "newsframe";
+        password = "newsframe";
+        dbname = "jdbc:mysql://localhost/newsframe";
+        conn = null;
+        stmt = null;
     }
 
 	/*
 	 * 	Connect to MySQL Newsframe Database
 	 */
 
-    public void connect() {	
-	    try {
+    public void connect() {
+        try {
             Class.forName(JDBC_DRIVER);
             conn = DriverManager.getConnection(dbname, username, password);
             System.out.println("Database connection established");
-			conn.createStatement().execute("use newsframe;");
-			System.out.println("Using newsframe database");
-			stmt = conn.createStatement();
-	    } catch (Exception e) { e.printStackTrace(); }
+            conn.createStatement().execute("use newsframe;");
+            System.out.println("Using newsframe database");
+            stmt = conn.createStatement();
+        } catch (Exception e) { e.printStackTrace(); }
     }
 	
 	/*
@@ -60,9 +60,9 @@ public class NewsFrameConn {
 	 *				weighted score
 	 */
 
-	public void updateDep (String ent1, String ent2, String path, long score, double wscore) {
-		update("dep_frame", "path", ent1, ent2, path, score, wscore);
-	}
+    //public void updateDep (String ent1, String ent2, String path, long score, double wscore) {
+//		update("dep_frame", "path", ent1, ent2, path, score, wscore);
+//	}
 	
 	/*
 	 * 	Insert or update entry in raw_frame table:
@@ -73,13 +73,13 @@ public class NewsFrameConn {
 	 *				score
 	 *				weighted score
 	 */
-	
-	public void updateRaw (String ent1, String ent2, String word, long score, double wscore) {
-		update("raw_frame", "word", ent1, ent2, word, score, wscore);
-	}
-	
-	private void update (String table, String col, String ent1, String ent2, String word, long score, double wscore) {
-		try {
+
+    public void updateRaw (String ent1, String ent2, String word, long score, int ngram) {
+        update("raw_frame", "word", ent1, ent2, word, score, ngram);
+    }
+
+    private void update (String table, String col, String ent1, String ent2, String word, long score, int nGram) {
+        try {
 
             preparedStatement = conn.prepareStatement("select ID, score from "+table+" where entity1 = ? AND entity2 = ? AND "+col+" = ?");
             //preparedStatement.setString(1,table);
@@ -105,13 +105,14 @@ public class NewsFrameConn {
 
             } else {
 
-                preparedStatement = conn.prepareStatement("INSERT INTO "+table+" (entity1, entity2, "+col+", score) VALUES (?, ?, ?, ?)");
+                preparedStatement = conn.prepareStatement("INSERT INTO "+table+" (entity1, entity2, "+col+", score, ngram) VALUES (?, ?, ?, ?, ?)");
                 //preparedStatement.setString(1, table);
                 //preparedStatement.setString(2, col);
                 preparedStatement.setString(1,ent1);
                 preparedStatement.setString(2,ent2);
                 preparedStatement.setString(3,word);
                 preparedStatement.setLong(4,score);
+                preparedStatement.setInt(5,nGram);
 
                 preparedStatement.executeUpdate();
 
@@ -131,32 +132,32 @@ public class NewsFrameConn {
             */
 
             }
-		} catch (SQLException e) {
+        } catch (SQLException e) {
             //System.out.println(preparedStatement);
             e.printStackTrace(); }
-	}
-	
-	public void deleteDep (String ent1, String ent2, String path) {
-		delete("dep_frame", "path", ent1, ent2, path);
-	}
-	
-	public void deleteRaw (String ent1, String ent2, String word) {
-		delete("raw_frame", "word", ent1, ent2, word);
-	}
-	
-	private void delete (String table, String col, String ent1, String ent2, String word) {
-		try {
-			String cols = "(entity1, entity2, "+col+")";
-	 		String vals = "(('"+ent1+"', '"+ent2+"', '"+word+"'))";
-		
-			String sql = "DELETE FROM "+table+
-						" WHERE "+cols+
-						" IN "+vals;
-		
-			stmt.executeUpdate(sql);
-		
-		} catch (SQLException e) { e.printStackTrace(); }
-	}
+    }
+
+    public void deleteDep (String ent1, String ent2, String path) {
+        delete("dep_frame", "path", ent1, ent2, path);
+    }
+
+    public void deleteRaw (String ent1, String ent2, String word) {
+        delete("raw_frame", "word", ent1, ent2, word);
+    }
+
+    private void delete (String table, String col, String ent1, String ent2, String word) {
+        try {
+            String cols = "(entity1, entity2, "+col+")";
+            String vals = "(('"+ent1+"', '"+ent2+"', '"+word+"'))";
+
+            String sql = "DELETE FROM "+table+
+                    " WHERE "+cols+
+                    " IN "+vals;
+
+            stmt.executeUpdate(sql);
+
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
 
 
     public void closeConnection() {

@@ -28,15 +28,17 @@ public class SentenceInstance {
     public String getSentence() {
         StringBuilder buffer = new StringBuilder();
         for(String fragment:sentence) {
-            if (fragment.startsWith("<A>:")) {
+            if (fragment != null) {
+                if (fragment.startsWith("<A>:")) {
 
 
-                String[] f = fragment.split("<A>:");
-                buffer.append(f[2]);
+                    String[] f = fragment.split("<A>:");
+                    buffer.append(f[2]);
 
 
-            } else {
-                buffer.append(fragment);
+                } else {
+                    buffer.append(fragment);
+                }
             }
 
         }
