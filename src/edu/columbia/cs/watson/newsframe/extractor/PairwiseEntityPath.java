@@ -3,6 +3,8 @@ package edu.columbia.cs.watson.newsframe.extractor;
 import edu.columbia.cs.watson.newsframe.schema.DBPediaEntryInstance;
 import edu.stanford.nlp.ling.CoreLabel;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -20,15 +22,28 @@ public class PairwiseEntityPath {
     //private List<CoreLabel> rawPath;
     private String rawPath;
     private int nGram;
+    private ArrayList<String> wordList;
+
 
     public PairwiseEntityPath(DBPediaEntryInstance ent1, DBPediaEntryInstance ent2, String rawPath, int nGram) {
         this.ent1=ent1;
         this.ent2=ent2;
         this.rawPath=rawPath;
         this.nGram=nGram;
+
+        String[] words = rawPath.split(" ");
+
+        wordList = new ArrayList<String>(words.length);
+        for(String word : words) {
+            if (!word.equals("_ent1_") && !word.equals("_ent2_")) {
+                wordList.add(word);
+            }
+        }
+
         //this.depPath=depPath;
     }
 
+    public ArrayList<String> getWordList() {return wordList;}
 
     public DBPediaEntryInstance getEntity1() {
         return ent1;

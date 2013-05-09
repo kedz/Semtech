@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Semtech">
+    <output-path>$PROJECT_DIR$/out/artifacts/Semtech</output-path>
+    <root id="archive" name="Semtech.jar">
+      <element id="module-output" name="Semtech" />
+    </root>
+  </artifact>
+</component>
