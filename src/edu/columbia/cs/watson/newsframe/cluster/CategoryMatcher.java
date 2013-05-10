@@ -9,20 +9,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 
 /**
  * @author Tushar
  *
  */
 public class CategoryMatcher {
-	
-	/**
-	 * @param args
-	 */
 	
 	private Connection connect = null;
 	private Statement selectStatement = null;
@@ -31,24 +23,13 @@ public class CategoryMatcher {
 	private ArrayList<String> softMatch = new ArrayList<String>();
 	
 	public static void main(String[] args) throws SQLException {
-		CategoryMatcher ec = new CategoryMatcher();
-		ArrayList<String> entities = new ArrayList<String>();
-		//entities.add("Barack_Obama");
-		//entities.add("Tony_Blair");
-		//entities.add("George_W._Bush");
-		//entities.add("Bill_Clinton");
-		Collections.addAll(entities, "Barack_Obama",  
-								"Bill_Clinton");
-		ec.computeOverlap(entities);
+		CategoryMatcher cMatch = new CategoryMatcher();
+		String str1 = "Barack_Obama";
+		String str2 = "Bill_Clinton";
+		cMatch.computeOverlap(str1, str2);
 	}
 	
-	/**
-	 * @param Takes in an ArrayList of any #of entity strings and returns common
-	 * categories between them 
-	 */
-	
-	private void computeOverlap(ArrayList<String> entities) {
-		HashMap<String, Integer> categoryMap = new HashMap<String, Integer>();
+	private void computeOverlap(String ent1, String ent2) {
 		ArrayList<ArrayList<String>> categoryList = 
 											new ArrayList<ArrayList<String>>();
 		
@@ -59,47 +40,29 @@ public class CategoryMatcher {
 							"newsframe?user=newsframe&password=newsframe");
 			System.out.println("Connected!");
 			
+			ArrayList<String> entities = new ArrayList<String>();
+			entities.add(ent1);
+			entities.add(ent2);
 			ArrayList<String> categories = new ArrayList<String>();
-			Integer categoryCount;
-			for(String eachEntity : entities){
+			
+			for(String eachEntity : entities) {
 				categories = queryDB(eachEntity);
-				System.out.println(categories);
 				categoryList.add(categories);
-				System.out.println(categoryList);
-				for (String eachCategory : categories) {
-					categoryCount = categoryMap.get(eachCategory);
-					if (categoryCount == null) {
-						categoryCount = 0;
-					}
-					categoryMap.put(eachCategory, ++categoryCount);
-				}
-			}
-			System.out.println(categoryMap);
-			
-			Integer len = entities.size();
-			for (Map.Entry<String, Integer> entry : categoryMap.entrySet()) {
-				String key = entry.getKey();
-			    Integer value = entry.getValue();
-			    if (value == len) {
-			    	//System.out.println(key);
-			    	//Add to an arraylist here
-			    	hardMatch.add(key);
-			    }
 			}
 			
-			softMatch = checkSimilarity(categoryList);
+			doCategoryMatching(categoryList);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
-			//System.out.println("Error:" + e.getMessage());
 		} finally {
 			closeConnection();
 		}
+		
 		System.out.println(hardMatch);
 		System.out.println(softMatch);
 	}
 
-	private ArrayList<String> queryDB(String queryEntity) {
+	public ArrayList<String> queryDB(String queryEntity) {
 		ArrayList<String> propertyList = new ArrayList<String>();
 		try {
 			this.selectStatement = this.connect.createStatement();
@@ -128,38 +91,28 @@ public class CategoryMatcher {
 			} catch (SQLException ignore) {}
 		}
 	}
-
-	private ArrayList<String> 
-						checkSimilarity(ArrayList<ArrayList<String>> catList ) {
+	
+	private void doCategoryMatching(ArrayList<ArrayList<String>> catList ) {
 		//Go through both array lists and check matching strings.
 		
-		ArrayList<String> matchingStrings = new ArrayList<String>();
 		for (String a1 : catList.get(0)) {
 		    for (String a2 : catList.get(1)) {
-		    	//Check a1 and a2 for similarity and add [a1, a2] to 
-		    	//a master list that will be returned
+		    	if (a1.equals(a2)) {
+		    		hardMatch.add(a1);
+		    	}
+		    	
 		    	if (similarStrings(a1,a2)) {
-		    		//System.out.println("Match:" + a1 + ' ' + a2);
-		    		matchingStrings.add(a1 + ':' + a2);
+		    		softMatch.add(a1 + ':' + a2);
 		    	}
 		    }
 		}
-		
-		//System.out.println(matchingStrings);
-		return matchingStrings;
 	}
 
 	private boolean similarStrings(String x, String y) {
 		int z = new LevenshteinDistance().computeLevenshteinDistance(x, y);
-//		if (z < 5) {
-//			return true;
-//		} else {
-//			return false;
-//		}
-		
-		return z < 5 && z > 0? true : false ;
+		return z < 5 && z > 0 ? true : false ;
 	}
-
+	
 	public class LevenshteinDistance {
         private int minimum(int a, int b, int c) {
             return Math.min(Math.min(a, b), c);
@@ -186,19 +139,4 @@ public class CategoryMatcher {
             return distance[str1.length()][str2.length()];
         }
 	}
-//	private Set<String> arrayIntersect(String[] a, String[] b) {
-//		Set<String> ai = new HashSet<String>();  
-//
-//		HashSet<String> ah = new HashSet<String>();  
-//		for (int i = 0; i < a.length; i++) {  
-//			ah.add(a[i]);  
-//		}  
-//
-//		for (int i = 0; i < b.length; i++) {  
-//			if (ah.contains(b[i])) {  
-//				ai.add(b[i]);  
-//			}  
-//		}
-//		return ai;	
-//	}
 }
