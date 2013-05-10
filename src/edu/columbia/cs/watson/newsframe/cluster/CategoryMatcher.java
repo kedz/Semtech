@@ -11,16 +11,15 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+
 
 /**
  * @author Tushar
  *
  */
 public class CategoryMatcher {
-
+	
 	/**
 	 * @param args
 	 */
@@ -28,6 +27,9 @@ public class CategoryMatcher {
 	private Connection connect = null;
 	private Statement selectStatement = null;
 	private ResultSet selectedRows = null;
+	private ArrayList<String> hardMatch = new ArrayList<String>();
+	private ArrayList<ArrayList<String>> softMatch = 
+											new ArrayList<ArrayList<String>>();
 	
 	public static void main(String[] args) throws SQLException {
 		CategoryMatcher ec = new CategoryMatcher();
@@ -46,21 +48,25 @@ public class CategoryMatcher {
 	 * categories between them 
 	 */
 	
-	private ArrayList<String> computeOverlap(ArrayList<String> entities) {
+	private void computeOverlap(ArrayList<String> entities) {
 		HashMap<String, Integer> categoryMap = new HashMap<String, Integer>();
-		ArrayList<String> overlap = new ArrayList<String>();
+		ArrayList<ArrayList<String>> categoryList = 
+											new ArrayList<ArrayList<String>>();
+		
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
 			this.connect = DriverManager
 							.getConnection("jdbc:mysql://localhost:4000/" + 
 							"newsframe?user=newsframe&password=newsframe");
-			//System.out.println("Connected!");
+			System.out.println("Connected!");
 			
 			ArrayList<String> categories = new ArrayList<String>();
 			Integer categoryCount;
 			for(String eachEntity : entities){
 				categories = queryDB(eachEntity);
-				//System.out.println(categories);
+				System.out.println(categories);
+				categoryList.add(categories);
+				System.out.println(categoryList);
 				for (String eachCategory : categories) {
 					categoryCount = categoryMap.get(eachCategory);
 					if (categoryCount == null) {
@@ -69,6 +75,7 @@ public class CategoryMatcher {
 					categoryMap.put(eachCategory, ++categoryCount);
 				}
 			}
+			System.out.println(categoryMap);
 			
 			Integer len = entities.size();
 			for (Map.Entry<String, Integer> entry : categoryMap.entrySet()) {
@@ -77,16 +84,20 @@ public class CategoryMatcher {
 			    if (value == len) {
 			    	//System.out.println(key);
 			    	//Add to an arraylist here
-			    	overlap.add(key);
+			    	hardMatch.add(key);
 			    }
 			}
+			
+			softMatch = checkSimilarity(categoryList);
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			//System.out.println("Error:" + e.getMessage());
 		} finally {
 			closeConnection();
 		}
-		return overlap;
+		System.out.println(softMatch);
+		System.out.println(hardMatch);
 	}
 
 	private ArrayList<String> queryDB(String queryEntity) {
@@ -119,36 +130,87 @@ public class CategoryMatcher {
 		}
 	}
 
-	private void checkSimilarity(HashMap<String, Integer> categoryMap) {
-		Set<String> common = null;
-		int maxLen;
-		for (String key1 : categoryMap.keySet()) {
-			String[] key1Split = key1.split("_");
-			for (String key2 : categoryMap.keySet()) {
-				String[] key2Split = key2.split("_");
-				common = arrayIntersect(key1Split, key2Split);
-				maxLen = Math.max(key1Split.length, key2Split.length);
-				if (common.size() >= maxLen - 1 ) {
-					System.out.println(key1 + "\t" + key2 + "\t" + common);
-				}
-			}
+	private ArrayList<ArrayList<String>> checkSimilarity(
+										ArrayList<ArrayList<String>> catList ) {
+		//Go through both array lists and check matching strings.
+		System.out.println(catList.get(0));
+		System.out.println(catList.get(1));
+		
+		ArrayList<ArrayList<String>> matchingStrings = 
+											new ArrayList<ArrayList<String>>();
+		ArrayList<String> tempList = new ArrayList<String>();
+		//int counter = 0;
+		for (String a1 : catList.get(0)) {
+		    for (String a2 : catList.get(1)) {
+		    	//Check a1 and a2 for similarity and add [a1, a2] to 
+		    	//a master list that will be returned
+		    	if (similarStrings(a1,a2)) {
+		    		System.out.println("Match:" + a1 + ' ' + a2);
+		    		System.out.println(tempList);
+		    		tempList.add(a1);
+		    		tempList.add(a2);
+		    		matchingStrings.add(tempList);
+		    		System.out.println(matchingStrings);
+		    		tempList.removeAll(tempList);
+		    		//matchingStrings.add(++counter, );
+		    	}
+		    }
 		}
 		
+		System.out.println(matchingStrings);
+		return matchingStrings;
 	}
 
-	private Set<String> arrayIntersect(String[] a, String[] b) {
-		Set<String> ai = new HashSet<String>();  
-
-		HashSet<String> ah = new HashSet<String>();  
-		for (int i = 0; i < a.length; i++) {  
-			ah.add(a[i]);  
-		}  
-
-		for (int i = 0; i < b.length; i++) {  
-			if (ah.contains(b[i])) {  
-				ai.add(b[i]);  
-			}  
-		}
-		return ai;	
+	private boolean similarStrings(String x, String y) {
+		int z = new LevenshteinDistance().computeLevenshteinDistance(x, y);
+//		if (z < 5) {
+//			return true;
+//		} else {
+//			return false;
+//		}
+		
+		return z < 5? true : false ;
 	}
+
+	public class LevenshteinDistance {
+        private int minimum(int a, int b, int c) {
+            return Math.min(Math.min(a, b), c);
+        }
+
+        public int computeLevenshteinDistance(CharSequence str1,
+                    CharSequence str2) {
+            int[][] distance = new int[str1.length() + 1][str2.length() + 1];
+
+            for (int i = 0; i <= str1.length(); i++)
+                    distance[i][0] = i;
+            for (int j = 1; j <= str2.length(); j++)
+                    distance[0][j] = j;
+
+            for (int i = 1; i <= str1.length(); i++)
+                    for (int j = 1; j <= str2.length(); j++)
+                            distance[i][j] = minimum(
+                                            distance[i - 1][j] + 1,
+                                            distance[i][j - 1] + 1,
+                                            distance[i - 1][j - 1]
+                                                            + ((str1.charAt(i - 1) == str2.charAt(j - 1)) ? 0
+                                                                            : 1));
+
+            return distance[str1.length()][str2.length()];
+        }
+	}
+//	private Set<String> arrayIntersect(String[] a, String[] b) {
+//		Set<String> ai = new HashSet<String>();  
+//
+//		HashSet<String> ah = new HashSet<String>();  
+//		for (int i = 0; i < a.length; i++) {  
+//			ah.add(a[i]);  
+//		}  
+//
+//		for (int i = 0; i < b.length; i++) {  
+//			if (ah.contains(b[i])) {  
+//				ai.add(b[i]);  
+//			}  
+//		}
+//		return ai;	
+//	}
 }
