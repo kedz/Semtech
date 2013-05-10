@@ -28,8 +28,7 @@ public class CategoryMatcher {
 	private Statement selectStatement = null;
 	private ResultSet selectedRows = null;
 	private ArrayList<String> hardMatch = new ArrayList<String>();
-	private ArrayList<ArrayList<String>> softMatch = 
-											new ArrayList<ArrayList<String>>();
+	private ArrayList<String> softMatch = new ArrayList<String>();
 	
 	public static void main(String[] args) throws SQLException {
 		CategoryMatcher ec = new CategoryMatcher();
@@ -96,8 +95,8 @@ public class CategoryMatcher {
 		} finally {
 			closeConnection();
 		}
-		System.out.println(softMatch);
 		System.out.println(hardMatch);
+		System.out.println(softMatch);
 	}
 
 	private ArrayList<String> queryDB(String queryEntity) {
@@ -130,34 +129,23 @@ public class CategoryMatcher {
 		}
 	}
 
-	private ArrayList<ArrayList<String>> checkSimilarity(
-										ArrayList<ArrayList<String>> catList ) {
+	private ArrayList<String> 
+						checkSimilarity(ArrayList<ArrayList<String>> catList ) {
 		//Go through both array lists and check matching strings.
-		System.out.println(catList.get(0));
-		System.out.println(catList.get(1));
 		
-		ArrayList<ArrayList<String>> matchingStrings = 
-											new ArrayList<ArrayList<String>>();
-		ArrayList<String> tempList = new ArrayList<String>();
-		//int counter = 0;
+		ArrayList<String> matchingStrings = new ArrayList<String>();
 		for (String a1 : catList.get(0)) {
 		    for (String a2 : catList.get(1)) {
 		    	//Check a1 and a2 for similarity and add [a1, a2] to 
 		    	//a master list that will be returned
 		    	if (similarStrings(a1,a2)) {
-		    		System.out.println("Match:" + a1 + ' ' + a2);
-		    		System.out.println(tempList);
-		    		tempList.add(a1);
-		    		tempList.add(a2);
-		    		matchingStrings.add(tempList);
-		    		System.out.println(matchingStrings);
-		    		tempList.removeAll(tempList);
-		    		//matchingStrings.add(++counter, );
+		    		//System.out.println("Match:" + a1 + ' ' + a2);
+		    		matchingStrings.add(a1 + ':' + a2);
 		    	}
 		    }
 		}
 		
-		System.out.println(matchingStrings);
+		//System.out.println(matchingStrings);
 		return matchingStrings;
 	}
 
@@ -169,7 +157,7 @@ public class CategoryMatcher {
 //			return false;
 //		}
 		
-		return z < 5? true : false ;
+		return z < 5 && z > 0? true : false ;
 	}
 
 	public class LevenshteinDistance {
