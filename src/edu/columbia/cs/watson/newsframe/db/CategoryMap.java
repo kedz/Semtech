@@ -21,21 +21,29 @@ public class CategoryMap {
 			HashSet<String> categoryCache = new HashSet<String>();
 			this.connect = ConnectionFactory.getConnection();
 			String sqlQuery = "SELECT categories FROM dbpedia where " +
-								"categories <> '' limit 1";
-			System.out.println(sqlQuery);
+								"categories <> ''";
+//			System.out.println(sqlQuery);
 			PreparedStatement categoryStatement = this.connect.
 													prepareStatement(sqlQuery);
 			ResultSet categoryRows = categoryStatement.executeQuery();
 			
 			int count = 0;
 			while (categoryRows.next()) {
-				System.out.println(++count);
+				count = count + 1;
+				if (count % 5 == 0 ) {
+					System.out.println("");
+					System.out.print(count);
+				}
+				else {
+					System.out.print(".");
+				}
 				String[] categories = categoryRows.getString("categories")
 																	.split(":");
 				
 				for (String eachCategory : categories) {
-					System.out.println(eachCategory);
+//					System.out.println(eachCategory);
 					if (! categoryCache.contains(eachCategory)) {
+						categoryCache.add(eachCategory);
 						getOtherEntities(eachCategory);
 					}
 				}	
@@ -56,26 +64,30 @@ public class CategoryMap {
 	}
 	
 	private void getOtherEntities(String category) {
+		String entityQuery = "SELECT entity_name FROM dbpedia WHERE " +
+				"categories REGEXP ?";
 		try {
 			ArrayList<String> entityList = new ArrayList<String>();
-			String entityQuery = "SELECT entity_name FROM dbpedia WHERE " +
-							"categories REGEXP '(^|:)" + category + "(:|$)'";
-			System.out.println(entityQuery);
+			
+//			System.out.println(entityQuery);
 			
 			PreparedStatement entityStatement = this.connect.
 												prepareStatement(entityQuery);
+			entityStatement.setString(1, "(^|:)" + category + "(:|$)");
 			ResultSet entityRows = entityStatement.executeQuery();
 
 			while (entityRows.next()) {
 				String entity = entityRows.getString("entity_name");
 				entityList.add(entity);
 			}
-			System.out.println(entityList);
-			System.out.println("");
+//			System.out.println(entityList);
+//			System.out.println("");
 			
 			insertEntities(entityList, category);
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.out.println(entityQuery);
+			System.exit(0);
 		}
 	}
 
@@ -87,8 +99,8 @@ public class CategoryMap {
 				entityString.append(eachEntity.toString() + ":");
 			}
 			String entityStr = removeLastChar(entityString.toString());
-			System.out.println(entityStr);
-			System.out.println("");
+//			System.out.println(entityStr);
+//			System.out.println("");
 			String insertQuery = "INSERT INTO category_map " + 
 											"(category, entities) VALUES (?,?)";
 			PreparedStatement insertStatement = this.connect.
@@ -99,6 +111,8 @@ public class CategoryMap {
 			
 		} catch (Exception e) {
 			e.printStackTrace();
+			System.out.println("Error: " + e);
+			System.exit(0);
 		}
 		
 	}
