@@ -1,7 +1,9 @@
 package edu.columbia.cs.watson.newsframe.extractor;
 
+import edu.columbia.cs.watson.newsframe.db.ConnectionFactory;
 import edu.columbia.cs.watson.newsframe.db.NewsFrameConn;
 import edu.columbia.cs.watson.newsframe.schema.DBPediaAnnotation;
+import edu.columbia.cs.watson.newsframe.schema.DBPediaEntryInstance;
 import edu.columbia.cs.watson.newsframe.schema.SentenceInstance;
 import edu.columbia.cs.watson.newsframe.schema.TaggedXmlInstance;
 import edu.columbia.cs.watson.newsframe.util.PathTupletCount;
@@ -15,6 +17,9 @@ import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -77,6 +82,80 @@ public class PathExtractor {
 
             List<CoreLabel> words = sentence.get(CoreAnnotations.TokensAnnotation.class);
 
+
+            ArrayList<CoreLabel> wordStack = new ArrayList<CoreLabel>();
+
+            for(int i = 0; i < words.size();i++) {
+
+                CoreLabel word = words.get(i);
+                if (tokensAnnotationMap.containsKey(word)) {
+
+                    DBPediaAnnotation dbAnn1 = tokensAnnotationMap.get(word);
+
+                    if (i+1 < words.size()) {
+
+                        int j = i + 1;
+                        CoreLabel word2 = words.get(j);
+
+                        while(j < words.size() && tokensAnnotationMap.containsKey(word2) && tokensAnnotationMap.get(word2).getEntryInstance().getName().equals(dbAnn1.getEntryInstance().getName())) {
+                            j++;
+                            if (j < words.size())
+                                word2 = words.get(j);
+
+
+                        }
+                        i = j-1;
+
+
+                    }
+
+                    wordStack.add(word);
+
+                } else {
+
+                    if (!punctuationTagSet.contains(word.tag()) && !word.tag().equals("POS") )
+                        wordStack.add(word);
+                }
+
+
+
+            }
+
+
+            for(int i = 0; i < wordStack.size(); i++) {
+                CoreLabel word1 = wordStack.get(i);
+                if (tokensAnnotationMap.containsKey(word1)) {
+                    int ngram = 0;
+
+
+
+                    StringBuilder buffer = new StringBuilder();
+                    for(int j = i +1; j < wordStack.size() && j < i +5;j++ ) {
+
+                        CoreLabel word2 = wordStack.get(j);
+                        if (tokensAnnotationMap.containsKey(word2)) {
+                            //System.out.println(tokensAnnotationMap.get(word1).getEntryInstance().getName()+": "+buffer.toString()+" :"+tokensAnnotationMap.get(word2).getEntryInstance().getName() + " : "+ngram);
+                            if (ngram <= 3)
+                                paths.add(new PairwiseEntityPath(tokensAnnotationMap.get(word1).getEntryInstance(),
+                                    tokensAnnotationMap.get(word2).getEntryInstance(), buffer.toString().trim(), ngram));
+
+                            buffer.append(" "+tokensAnnotationMap.get(word2).getEntryInstance().getName());
+
+                        } else {
+                            buffer.append(" "+word2.lemma()) ;
+                        }
+                        ngram++;
+
+
+                    }
+
+
+
+               }
+
+            }
+
+            /*
             for(int i=0;i<words.size();i++) {
 
                 CoreLabel word = words.get(i);
@@ -87,6 +166,14 @@ public class PathExtractor {
                     DBPediaAnnotation ann1 = tokensAnnotationMap.get(word);
                     StringBuilder buffer = new StringBuilder();
 
+
+
+
+
+
+
+
+
                     int nGram = 0;
                     int slack = 8;
                     for (int j=i+1;j<words.size() && j < i+slack;j++  ) {
@@ -96,6 +183,10 @@ public class PathExtractor {
 
 
                         if (tokensAnnotationMap.containsKey(word2) ) {
+
+
+
+
 
                             DBPediaAnnotation ann2 = tokensAnnotationMap.get(word2);
 
@@ -134,6 +225,7 @@ public class PathExtractor {
 
 
             }
+            */
 
             /*
             List<IndexedWord> vertexSet = dGraph.vertexListSorted();
@@ -525,19 +617,27 @@ public class PathExtractor {
 
 
 
-                //if (counts.getNGram() >3)
-                //System.out.println(counts.getEntity1().getName() + " : " + counts.getPath() + " : " + counts.getEntity2().getName() + " :: "+counts.getNGram());
+                //System.out.println(counts.getPath());
+                //newsFrameConn.updateRaw(counts.getEntity1().getName(), counts.getEntity2().getName(), counts.getPath(), counts.getCount(), counts.getNGram());
+
+                try {
+                Connection connection = ConnectionFactory.getConnection();
+                PreparedStatement insertStatement = connection.prepareStatement(
+                        "INSERT INTO sem_frame (entity1, entity2, path, count, ngram)\n" +
+                                "VALUES (?, ?, ?, ?, ?)\n" +
+                                "ON DUPLICATE KEY UPDATE count = count + " + counts.getCount());
+                insertStatement.setString(1, counts.getEntity1().getName());
+                insertStatement.setString(2, counts.getEntity2().getName());
+                insertStatement.setString(3, counts.getPath());
+                insertStatement.setLong(4, counts.getCount());
+                insertStatement.setInt(5,counts.getNGram());
+                insertStatement.executeUpdate();
 
 
-                //if (counts.isRaw())
-                //if (counts.getNGram() >3)
-                newsFrameConn.updateRaw(counts.getEntity1().getName(), counts.getEntity2().getName(), counts.getPath(), counts.getCount(), counts.getNGram());
-                //else
-                //  newsFrameConn.updateDep(counts.getCategory1().toString(), counts.getCategory2().toString(), counts.getPath(), counts.getCount(), counts.getWeightedCount());
+                } catch (SQLException sqle) {
+                    sqle.printStackTrace();
+                }
 
-
-                //if (counts.getCount() > 1)
-                //System.out.println(counts.getCount() + ":"+ counts.getWeightedCount() +" "+ counts.getCategory1()+ " : " + counts.getCategory2()+ " :: " +counts.getPath());
 
             }
             System.out.println("#\nClosing connection to database.");
@@ -545,7 +645,6 @@ public class PathExtractor {
 
             System.out.println("Finished processing file "+taggedXmlFile);
             System.out.println("Longest path is " + largestPath + " chars: "+longestPathStr);
-            System.out.println("Longest cat/ent is " + largestCat + " chars: "+longestCatStr);
 
 
         }

@@ -56,9 +56,7 @@ public class DBPediaAnnotator {
             Class.forName("com.mysql.jdbc.Driver");
 
             if (connect == null || connect.isClosed()) {
-                connect = DriverManager
-                        .getConnection("jdbc:mysql://localhost/newsframe?"
-                                + "user="+USERNAME+"&password="+PASSWORD);
+                connect = ConnectionFactory.getConnection();
             }
 
 

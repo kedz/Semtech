@@ -42,7 +42,7 @@ public class NewsFrameConn {
     public void connect() {
         try {
             Class.forName(JDBC_DRIVER);
-            conn = DriverManager.getConnection(dbname, username, password);
+            conn = ConnectionFactory.getConnection();
             System.out.println("Database connection established");
             conn.createStatement().execute("use newsframe;");
             System.out.println("Using newsframe database");

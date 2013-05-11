@@ -23,14 +23,22 @@ public class ClusterPipeline {
         Connection connection = ConnectionFactory.getConnection();
 
         // Get path subsets from overlap
-
-
+        //            |
+        //            |
+        //            |
+        //           \|/
+        //            +
+        //
+        // a Big Bag of Paths
+        //
+        //
+        //
         // explode paths with synsets
-
-
-        // LDA to assign to topics
-
-
+        //
+        // For each subset:
+        //      LDA to assign to topics
+        //
+        //
         // EM clustering within topics
 
 

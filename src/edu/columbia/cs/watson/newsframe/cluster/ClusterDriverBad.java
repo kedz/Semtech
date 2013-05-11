@@ -1,7 +1,6 @@
-package edu.columbia.cs.watson.newsframe.extractor;
+package edu.columbia.cs.watson.newsframe.cluster;
 
-import edu.columbia.cs.watson.newsframe.cluster.Cluster;
-import edu.columbia.cs.watson.newsframe.cluster.CountsLookup;
+import edu.columbia.cs.watson.newsframe.extractor.PairwiseEntityPath;
 import edu.columbia.cs.watson.newsframe.schema.DBPediaCategory;
 import edu.columbia.cs.watson.newsframe.schema.DBPediaEntryInstance;
 import edu.smu.tspell.wordnet.Synset;
