@@ -61,14 +61,14 @@ public class DBPediaAnnotator {
 
 
             if(this.newQuery(resource)) {
-                System.out.println("Retrieving resource: <"+resource+"> from the DBPedia endpoint.");
+                System.out.println("Retrieving resource: <"+resource.replaceAll("<","\\<").replaceAll(">","\\>")+"> from the DBPedia endpoint.");
 
                 String service = "http://dbpedia.org/sparql";
 
                 String query = "PREFIX dcterms: <http://purl.org/dc/terms/> " +
                         "SELECT ?category WHERE { " +
                         "<http://dbpedia.org/resource/" +
-                        this.resource +
+                        this.resource.replaceAll("<","\\<").replaceAll(">","\\>") +
                         "> dcterms:subject ?category .}";
                  /*
                 String query = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
@@ -86,6 +86,8 @@ public class DBPediaAnnotator {
                         "}";
 
                   */
+
+
                 QueryExecution qe = QueryExecutionFactory
                         .sparqlService(service, query);
 
