@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.regex.Pattern;
 
 public class CategoryMap {
 	private Connection connect = null;
@@ -42,8 +43,8 @@ public class CategoryMap {
 				
 				for (String eachCategory : categories) {
 //					System.out.println(eachCategory);
-					if (! categoryCache.contains(eachCategory)) {
-						categoryCache.add(eachCategory);
+					if (! categoryCache.contains(eachCategory.toLowerCase())) {
+						categoryCache.add(eachCategory.toLowerCase());
 						getOtherEntities(eachCategory);
 					}
 				}	
@@ -73,7 +74,8 @@ public class CategoryMap {
 			
 			PreparedStatement entityStatement = this.connect.
 												prepareStatement(entityQuery);
-			entityStatement.setString(1, "(^|:)" + category + "(:|$)");
+			String escapedCategory = Pattern.quote(category);
+			entityStatement.setString(1, "(^|:)" + escapedCategory + "(:|$)");
 			ResultSet entityRows = entityStatement.executeQuery();
 
 			while (entityRows.next()) {
@@ -87,7 +89,7 @@ public class CategoryMap {
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println(entityQuery);
-			System.exit(0);
+			//System.exit(0);
 		}
 	}
 
@@ -112,7 +114,7 @@ public class CategoryMap {
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println("Error: " + e);
-			System.exit(0);
+			//System.exit(0);
 		}
 		
 	}
