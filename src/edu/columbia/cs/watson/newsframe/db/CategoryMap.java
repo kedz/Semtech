@@ -23,7 +23,7 @@ public class CategoryMap {
 			this.connect = ConnectionFactory.getConnection();
 			String sqlQuery = "SELECT categories FROM dbpedia where " +
 								"categories <> ''";
-//			System.out.println(sqlQuery);
+			System.out.println(sqlQuery);
 			PreparedStatement categoryStatement = this.connect.
 													prepareStatement(sqlQuery);
 			ResultSet categoryRows = categoryStatement.executeQuery();
@@ -65,35 +65,49 @@ public class CategoryMap {
 	}
 	
 	private void getOtherEntities(String category) {
-		String entityQuery = "SELECT entity_name FROM dbpedia WHERE " +
-				"categories REGEXP ?";
+		
 		try {
 			ArrayList<String> entityList = new ArrayList<String>();
-			
-//			System.out.println(entityQuery);
+			String escapedCategory = escapeChars(category);
+			String entityQuery = "SELECT entity_name FROM dbpedia WHERE " +
+					"categories REGEXP '(^|:)" + escapedCategory + "(:|$)'";
 			
 			PreparedStatement entityStatement = this.connect.
-												prepareStatement(entityQuery);
-			String escapedCategory = Pattern.quote(category);
-			entityStatement.setString(1, "(^|:)" + escapedCategory + "(:|$)");
+											prepareStatement(entityQuery);
+			
+			System.out.println(entityStatement.toString());
+			
 			ResultSet entityRows = entityStatement.executeQuery();
 
 			while (entityRows.next()) {
 				String entity = entityRows.getString("entity_name");
 				entityList.add(entity);
 			}
-//			System.out.println(entityList);
-//			System.out.println("");
+			System.out.println(entityList);
+			System.out.println("");
 			
 			insertEntities(entityList, category);
 		} catch (Exception e) {
 			e.printStackTrace();
-			System.out.println(entityQuery);
+			
 			//System.exit(0);
 		}
 	}
 
+	private String escapeChars(String s) {
+		String[] escapeItems = {"*", ".", "?", "+", "[", "]", "(", ")", 
+											"{", "}", "^", "$", "|", "\\", "'"};
 
+		
+		for (int i = 0; i < escapeItems.length ; i++) {
+			if (s.contains(escapeItems[i])) {
+				s = s.replace(escapeItems[i], '\\' + escapeItems[i]);
+			}
+		}
+		
+		return s;
+	}
+	
 	private void insertEntities(ArrayList<String> entities, String category) {
 		try {
 			StringBuffer entityString = new StringBuffer();
