@@ -22,7 +22,7 @@ public class CategoryMap {
 			HashSet<String> categoryCache = new HashSet<String>();
 			this.connect = ConnectionFactory.getConnection();
 			String sqlQuery = "SELECT categories FROM dbpedia where " +
-								"categories <> ''";
+								"categories <> '' limit 3";
 			System.out.println(sqlQuery);
 			PreparedStatement categoryStatement = this.connect.
 													prepareStatement(sqlQuery);
@@ -75,16 +75,14 @@ public class CategoryMap {
 			PreparedStatement entityStatement = this.connect.
 											prepareStatement(entityQuery);
 			
-			System.out.println(entityStatement.toString());
-			
 			ResultSet entityRows = entityStatement.executeQuery();
 
 			while (entityRows.next()) {
 				String entity = entityRows.getString("entity_name");
 				entityList.add(entity);
 			}
-			System.out.println(entityList);
-			System.out.println("");
+//			System.out.println(entityList);
+//			System.out.println("");
 			
 			insertEntities(entityList, category);
 		} catch (Exception e) {
@@ -110,20 +108,20 @@ public class CategoryMap {
 	
 	private void insertEntities(ArrayList<String> entities, String category) {
 		try {
-			StringBuffer entityString = new StringBuffer();
+			//StringBuffer entityString = new StringBuffer();
 			for(String eachEntity : entities) {
-				entityString.append(eachEntity.toString() + ":");
+				//entityString.append(eachEntity.toString() + ":");
+			//}
+			//String entityStr = removeLastChar(entityString.toString());
+				String insertQuery = "INSERT INTO category_map " + 
+												"(category, entity) VALUES (?,?)";
+				PreparedStatement insertStatement = this.connect.
+												prepareStatement(insertQuery);
+				insertStatement.setString(1, category);
+				insertStatement.setString(2, eachEntity);
+				insertStatement.executeUpdate();
 			}
-			String entityStr = removeLastChar(entityString.toString());
-//			System.out.println(entityStr);
-//			System.out.println("");
-			String insertQuery = "INSERT INTO category_map " + 
-											"(category, entities) VALUES (?,?)";
-			PreparedStatement insertStatement = this.connect.
-											prepareStatement(insertQuery);
-			insertStatement.setString(1, category);
-			insertStatement.setString(2, entityStr);
-			insertStatement.executeUpdate();
+				
 			
 		} catch (Exception e) {
 			e.printStackTrace();
