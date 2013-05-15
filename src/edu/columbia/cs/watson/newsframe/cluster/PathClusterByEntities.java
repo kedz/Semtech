@@ -216,9 +216,12 @@ public class PathClusterByEntities {
 
             }
 
+            clusterDriver.shutdown();
+
         } catch (SQLException sqle) {
             sqle.printStackTrace();
         }
+
 
 
     }

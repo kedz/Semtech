@@ -367,6 +367,10 @@ public class ClusterDriver<K,V> {
         return avgResp;
     }
 
+    public void shutdown() {
+        executorService.shutdown();
+    }
+
 
     public static void main(String[] args) {
 
@@ -481,6 +485,7 @@ public class ClusterDriver<K,V> {
         cluster.printResponsibilities();
         cluster.printMostLikelyAssignments();
 
+        cluster.shutdown();
 
 
         /*
