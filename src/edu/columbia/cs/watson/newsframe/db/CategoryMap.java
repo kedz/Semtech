@@ -22,7 +22,7 @@ public class CategoryMap {
 			HashSet<String> categoryCache = new HashSet<String>();
 			this.connect = ConnectionFactory.getConnection();
 			String sqlQuery = "SELECT categories FROM dbpedia where " +
-								"categories <> '' limit 3";
+								"categories <> ''";
 			System.out.println(sqlQuery);
 			PreparedStatement categoryStatement = this.connect.
 													prepareStatement(sqlQuery);
@@ -108,11 +108,9 @@ public class CategoryMap {
 	
 	private void insertEntities(ArrayList<String> entities, String category) {
 		try {
-			//StringBuffer entityString = new StringBuffer();
+
 			for(String eachEntity : entities) {
-				//entityString.append(eachEntity.toString() + ":");
-			//}
-			//String entityStr = removeLastChar(entityString.toString());
+
 				String insertQuery = "INSERT INTO category_map " + 
 												"(category, entity) VALUES (?,?)";
 				PreparedStatement insertStatement = this.connect.

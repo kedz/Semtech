@@ -1,18 +1,8 @@
 package edu.columbia.cs.watson.newsframe.cluster;
 
-import edu.columbia.cs.watson.newsframe.extractor.PairwiseEntityPath;
-import edu.columbia.cs.watson.newsframe.schema.DBPediaCategory;
-import edu.columbia.cs.watson.newsframe.schema.DBPediaEntryInstance;
-import edu.smu.tspell.wordnet.Synset;
-import edu.smu.tspell.wordnet.SynsetType;
-import edu.smu.tspell.wordnet.VerbSynset;
-import edu.smu.tspell.wordnet.WordNetDatabase;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,10 +13,17 @@ import java.util.*;
  */
 public class ClusterDriver<K,V> {
 
+    public static final int UNDERFLOW_CUTOFF = 10;
     private ArrayList<Cluster<K>> clusterList;
     private ArrayList<K> keyList;
     private HashMap<K,HashSet<V>> keyValueSetMap;
     private int numClusters = 2;
+
+    private static ExecutorService executorService = Executors.newFixedThreadPool(10);
+
+
+    private double[][] cachedResponsibilities;
+    private int cacheSize = 0;
 
     private double[][] responsibilities;
     private double[][] qParameters;
@@ -43,6 +40,7 @@ public class ClusterDriver<K,V> {
     }
 
     public void init() {
+
 
         valueToIndexMap = new HashMap<V, Integer>();
         indexToValueMap = new HashMap<Integer, V>();
@@ -92,8 +90,10 @@ public class ClusterDriver<K,V> {
 
 
         //alter this
-        //responsibilities[1][4] = 1.0;
-        //responsibilities[0][5] = 1.0;
+        //responsibilities[1][5] = 1.0;
+        //responsibilities[0][6] = 1.0;
+
+
         System.out.print("CLUSTER INIT: Randomly generating starting cluster assignments...");
 
         Random generator = new Random(System.currentTimeMillis());
@@ -119,6 +119,10 @@ public class ClusterDriver<K,V> {
 
 
 
+        ExpectationCalculatorThread.initializeTablesandParameters(responsibilities,alphaParameters,qParameters,UNDERFLOW_CUTOFF,numClusters,numValues,indexToValueMap);
+        LogLikelihoodCalculatorThread.initializeTablesandParameters(responsibilities, alphaParameters, qParameters, UNDERFLOW_CUTOFF, numClusters, numValues, indexToValueMap);
+
+
         maximizeQParameters();
         //maximizationStep();
         System.out.println("CLUSTER INIT: Initialization is complete. Let's do some clustering dawg.");
@@ -140,7 +144,8 @@ public class ClusterDriver<K,V> {
             for (int k = 0; k < keyList.size(); k++) {
                 sum += responsibilities[c][k];
             }
-            sum = sum/(double)keyList.size();
+            sum += .0001;
+            sum = sum/ ( (double)keyList.size() + (double)numClusters * .0001          );
             alphaParameters[c] = sum;
 
         }
@@ -168,7 +173,7 @@ public class ClusterDriver<K,V> {
                         numerator += responsibilities[c][n]+0.0001;
                     }
 
-                    denominator += responsibilities[c][n]+0.0001;
+                    denominator += responsibilities[c][n]+ (double) numValues * 0.0001;
 
                 }
 
@@ -182,33 +187,29 @@ public class ClusterDriver<K,V> {
 
     public void expectationStep() {
 
+
+        Collection<Future<?>> futures = new LinkedList<Future<?>>();
+
         for(int n = 0; n < keyList.size(); n++) {
+
 
             K key = keyList.get(n);
             HashSet<V> valueSet = keyValueSetMap.get(key);
-            double denominator = 0.0;
 
-            for(int c = 0; c < numClusters; c++) {
-                double newR = alphaParameters[c];
-                for(int m = 0; m < numValues; m++) {
-                    V value = indexToValueMap.get(m);
-                    double qParam = qParameters[c][m];
-
-                    if (valueSet.contains(value)) {
-                        newR = newR * qParam;
-                    } else {
-                        newR = newR * (1-qParam);
-                    }
-                }
-                responsibilities[c][n] = newR;
-                denominator += newR;
-            }
-
-            for(int c = 0; c < numClusters; c++) {
-                responsibilities[c][n] = responsibilities[c][n]/denominator;
-            }
+            futures.add(executorService.submit(new ExpectationCalculatorThread<V>(valueSet, n)));
 
 
+        }
+
+        try {
+            for (Future<?> future:futures) {
+                future.get();
+        }
+
+        } catch (ExecutionException ee) {
+            ee.printStackTrace();
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
         }
 
     }
@@ -297,10 +298,78 @@ public class ClusterDriver<K,V> {
 
     public void setNumClusters(int numClusters) {this.numClusters = numClusters;}
 
+    public double getLogLikelihood() {
+
+        double logLikelihood = 0.0;
+        LinkedList<LogLikelihoodCalculatorThread<V>> threadList = new LinkedList<LogLikelihoodCalculatorThread<V>>();
+
+        Collection<Future<?>> futures = new LinkedList<Future<?>>();
+
+        for(int n = 0; n < keyList.size(); n++) {
+
+
+            K key = keyList.get(n);
+            HashSet<V> valueSet = keyValueSetMap.get(key);
+
+            LogLikelihoodCalculatorThread<V> llCalc = new LogLikelihoodCalculatorThread<V>(valueSet,n);
+
+            threadList.add(llCalc);
+            futures.add(executorService.submit(llCalc));
+
+
+        }
+
+        try {
+            for (Future<?> future:futures) {
+                future.get();
+            }
+
+        } catch (ExecutionException ee) {
+            ee.printStackTrace();
+        } catch (InterruptedException ie) {
+            ie.printStackTrace();
+        }
+
+        for(LogLikelihoodCalculatorThread<V> calc : threadList) {
+            logLikelihood += calc.logLikelihood;
+        }
+
+        return logLikelihood;
+    }
+
+    public double[][] getResponsibilityTable() { return responsibilities; }
+
+    public void addCurrentResultsToCache() {
+        if (cachedResponsibilities == null) {
+            cachedResponsibilities = responsibilities;
+        } else {
+
+            for (int c = 0; c < numClusters; c++) {
+                for (int n = 0; n < keyList.size(); n++) {
+                    cachedResponsibilities[c][n] += responsibilities[c][n];
+
+                }
+            }
+        }
+        cacheSize++;
+    }
+
+    public double[][] getAveragedResponsibilities() {
+
+        double[][] avgResp = new double[numClusters][keyList.size()];
+
+        for (int c = 0; c < numClusters; c++) {
+            for (int n = 0; n < keyList.size(); n++) {
+                avgResp[c][n] = cachedResponsibilities[c][n]/(double)cacheSize;
+
+            }
+        }
+        return avgResp;
+    }
+
 
     public static void main(String[] args) {
-        /*
-        System.out.println();
+
 
         ArrayList<Integer> docIdList = new ArrayList<Integer>();
         Integer one = new Integer(1);
@@ -405,13 +474,16 @@ public class ClusterDriver<K,V> {
             cluster.maximizationStep();
             cluster.expectationStep();
             cluster.printResponsibilities();
+            System.out.println("Log Likelihood: " + cluster.getLogLikelihood());
         }
 
         cluster.printAlphas();
         cluster.printResponsibilities();
         cluster.printMostLikelyAssignments();
-        */
 
+
+
+        /*
         System.setProperty("wordnet.database.dir", "/home/chris/WordNet-3.0/dict");
         WordNetDatabase database = WordNetDatabase.getFileInstance();
 
@@ -497,6 +569,8 @@ public class ClusterDriver<K,V> {
             System.out.println("!");
             ioe.printStackTrace();
         }
+
+        */
 
     }
 
