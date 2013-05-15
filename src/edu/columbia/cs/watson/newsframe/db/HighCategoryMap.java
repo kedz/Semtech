@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 public class HighCategoryMap {
 	private Connection connect = null;
@@ -38,7 +37,6 @@ public class HighCategoryMap {
 			//		for each category in categories, do regex query.
 			//			insert each new entity into new table
 			
-			HashSet<String> categoryCache = new HashSet<String>();
 			
 			int count = 0;
 			for (String eachEntity : highEntities) {
@@ -61,15 +59,18 @@ public class HighCategoryMap {
 				while (categoryRows.next()) {
 					String[] categories = categoryRows.getString("categories")
 																	.split(":");					
-					for (String eachCategory : categories) {
-						if (! categoryCache
-										.contains(eachCategory.toLowerCase())) {
-							categoryCache.add(eachCategory.toLowerCase());	
-							getOtherEntities(eachCategory);
-						}
-					}
+					for (String eachCategory : categories) {	
+						String insertQuery = "INSERT INTO high_category_map " + 
+											"(category, entity) VALUES (?,?)";
+						PreparedStatement insertStatement = this.connect.
+												prepareStatement(insertQuery);
+						insertStatement.setString(1, eachCategory);
+						insertStatement.setString(2, eachEntity);
+						insertStatement.executeUpdate();
+					}			
 				}
 			}
+			
 			
 		} catch (Exception e) {
 			e.printStackTrace();
