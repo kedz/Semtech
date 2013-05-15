@@ -53,9 +53,9 @@ public class PathClusterByEntities {
 
 
 
-                PreparedStatement selectAllEntities = connection.prepareStatement("SELECT ? FROM sem_frame WHERE path = ? AND count > 1");
-                selectAllEntities.setString(1,entityLabel);
-                selectAllEntities.setString(2,path);
+                PreparedStatement selectAllEntities = connection.prepareStatement("SELECT "+entityLabel+" FROM high_frames WHERE path = ?");
+                //selectAllEntities.setString(1,entityLabel);
+                selectAllEntities.setString(1,path);
                 ResultSet entitiesFromPathResults = selectAllEntities.executeQuery();
 
                 HashSet<String> associatedEntities = new HashSet<String>();
@@ -112,7 +112,7 @@ public class PathClusterByEntities {
                 clusterDriver.init();
 
                 int iter = 0;
-                double epsilon = 0.0000001;
+                double epsilon = 0.000000001;
                 double oldLogLikelihood = Double.NEGATIVE_INFINITY;
                 double delta = Double.POSITIVE_INFINITY;
 

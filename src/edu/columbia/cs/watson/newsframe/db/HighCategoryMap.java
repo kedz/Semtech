@@ -86,7 +86,8 @@ public class HighCategoryMap {
 			} catch (SQLException ignore) {}
 		}
 	}
-	
+
+    /*
 	private void getOtherEntities(String category) {
 		
 		try {
@@ -140,4 +141,5 @@ public class HighCategoryMap {
 			System.out.println("Error: " + e);
 		}		
 	}
+	*/
 }
